@@ -38,7 +38,7 @@ public class CommerceController {
     @PostMapping("/products/{id}/review")
     public ResponseEntity<RecommendationJobResponse> review(@PathVariable String id) { return submit(id, SuggestionType.BOTH); }
     private ResponseEntity<RecommendationJobResponse> submit(String id, SuggestionType type) {
-        return ResponseEntity.accepted().body(recommendations.submit(id, TriggerReason.MANUAL, type));
+        return ResponseEntity.accepted().body(recommendations.submit(id, TriggerReason.MANUAL, type, true));
     }
     @GetMapping("/recommendation-jobs")
     public List<RecommendationJobResponse> jobs() { return recommendations.recent(); }
@@ -50,7 +50,7 @@ public class CommerceController {
         SseEmitter emitter = new SseEmitter(60000L);
         var job = recommendations.submit(id, TriggerReason.MANUAL, SuggestionType.PRICING,
             token -> send(emitter, "token", Map.of("text", token)),
-            result -> { send(emitter, "result", result); emitter.complete(); });
+            result -> { send(emitter, "result", result); emitter.complete(); }, true);
         send(emitter, "queued", job);
         return emitter;
     }

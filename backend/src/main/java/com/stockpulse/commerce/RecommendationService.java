@@ -24,17 +24,25 @@ public class RecommendationService {
     private static class Job {
         volatile RecommendationJobResponse view;
         final CompletableFuture<RecommendationJobResponse> done = new CompletableFuture<>();
-        Job(RecommendationJobResponse view) { this.view = view; }
+        final boolean forceRefresh;
+        Job(RecommendationJobResponse view, boolean forceRefresh) { this.view = view; this.forceRefresh = forceRefresh; }
     }
     public RecommendationService(GenerationStore store, RecommendationEngine engine,
             @Qualifier("recommendationExecutor") TaskExecutor executor, Clock clock) {
         this.store = store; this.engine = engine; this.executor = executor; this.clock = clock;
     }
     public RecommendationJobResponse submit(String productId, TriggerReason trigger, SuggestionType type) {
-        return submit(productId, trigger, type, null, null);
+        return submit(productId, trigger, type, null, null, false);
+    }
+    public RecommendationJobResponse submit(String productId, TriggerReason trigger, SuggestionType type, boolean forceRefresh) {
+        return submit(productId, trigger, type, null, null, forceRefresh);
     }
     public synchronized RecommendationJobResponse submit(String productId, TriggerReason trigger, SuggestionType type,
             Consumer<String> tokens, Consumer<RecommendationJobResponse> completed) {
+        return submit(productId, trigger, type, tokens, completed, false);
+    }
+    public synchronized RecommendationJobResponse submit(String productId, TriggerReason trigger, SuggestionType type,
+            Consumer<String> tokens, Consumer<RecommendationJobResponse> completed, boolean forceRefresh) {
         store.context(productId, trigger); // Return 404 before admitting an invalid request.
         String key = productId + ":" + trigger + ":" + type;
         Job existing = inFlight.get(key);
@@ -44,7 +52,7 @@ public class RecommendationService {
         }
         Instant now = clock.instant();
         Job job = new Job(new RecommendationJobResponse(UUID.randomUUID().toString(), productId, trigger, type,
-            JobStatus.QUEUED, null, "Queued for review", null, null, now, now));
+            JobStatus.QUEUED, null, "Queued for review", null, null, now, now), forceRefresh);
         if (completed != null) job.done.thenAccept(completed);
         jobs.put(job.view.id(), job); inFlight.put(key, job);
         prune();
@@ -61,7 +69,8 @@ public class RecommendationService {
         RecommendationJobResponse input = job.view;
         try {
             finish(job, JobStatus.RUNNING, null, "Reviewing inventory and demand");
-            var existing = store.existing(input.productId(), input.triggerReason(), input.type());
+            var existing = job.forceRefresh ? Optional.<GenerationStore.Saved>empty()
+                : store.existing(input.productId(), input.triggerReason(), input.type());
             GenerationStore.Saved saved;
             if (existing.isPresent()) saved = existing.get();
             else {

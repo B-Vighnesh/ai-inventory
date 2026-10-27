@@ -106,7 +106,7 @@ POST  /products/{id}/suggest-pricing/stream    pricing advice as SSE
 GET   /products/{id}/history                   price and inventory history
 ```
 
-Stock/order changes can enqueue low-stock or demand-spike reviews after commit. `COMMERCE_EVENTS_ENABLED` and `INITIAL_GENERATION` control automatic triggers. `COMMERCE_STRATEGY` is `AI` or `RULES`; runtime updates use the settings endpoint. The recommendation job queue is in-memory, so queued work does not survive a process restart. Recommendations are advisory; accepting a pricing suggestion is still explicit and rejects stale prices.
+Stock/order changes can enqueue low-stock or demand-spike reviews after commit. `COMMERCE_EVENTS_ENABLED` and `INITIAL_GENERATION` control automatic triggers. `COMMERCE_STRATEGY` is `AI` or `RULES`; runtime updates use the settings endpoint. Every new sequential manual review requests a fresh advisor run and supersedes previous pending advice; simultaneous duplicate submissions are coalesced while work is already in flight. The recommendation job queue is in-memory, so queued work does not survive a process restart. Recommendations are advisory; accepting a pricing suggestion is still explicit and rejects stale prices.
 
 ## Structure and behavior
 

@@ -96,6 +96,22 @@ class CommerceIntegrationTests {
         body = mvc.perform(post("/products/" + p.getId() + "/suggest-reorder")).andExpect(status().isAccepted()).andReturn().getResponse().getContentAsString();
         assertThat(await(json.readTree(body).get("id").asText()).reorderId()).isNotNull();
     }
+    @Test void eachSequentialManualReviewGeneratesFreshRecommendations() throws Exception {
+        Product p = product(20, 10);
+        String firstBody = mvc.perform(post("/products/" + p.getId() + "/review")).andExpect(status().isAccepted())
+            .andReturn().getResponse().getContentAsString();
+        var first = await(json.readTree(firstBody).get("id").asText());
+
+        String secondBody = mvc.perform(post("/products/" + p.getId() + "/review")).andExpect(status().isAccepted())
+            .andReturn().getResponse().getContentAsString();
+        var second = await(json.readTree(secondBody).get("id").asText());
+
+        assertThat(second.id()).isNotEqualTo(first.id());
+        assertThat(second.pricingId()).isNotEqualTo(first.pricingId());
+        assertThat(second.reorderId()).isNotEqualTo(first.reorderId());
+        assertThat(pricing.findById(first.pricingId()).orElseThrow().getStatus()).isEqualTo(SuggestionStatus.SUPERSEDED);
+        assertThat(reorders.findById(first.reorderId()).orElseThrow().getStatus()).isEqualTo(SuggestionStatus.SUPERSEDED);
+    }
     @Test void oldSalesExpireFromDemandAndFutureSalesAreExcluded() throws Exception {
         Product p = product(100, 0);
         sales.saveAndFlush(new SaleRecord(p.getId(), 9, Instant.now().minus(Duration.ofHours(25))));

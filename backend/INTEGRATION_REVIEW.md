@@ -12,7 +12,7 @@ Updated 27 October 2026 after implementation and verification. The connected Rea
 - After-commit stock handling; product create/initial review support; stale context checks before persistence and before price acceptance.
 - Local env import; secrets are ignored. The user-provided key is only stored in the local backend env file and is not part of the source tree.
 - Eight seeded products. H2 remains the default development database and is in-memory.
-- Backend tests: 43 passed. Frontend API tests and production build passed during implementation.
+- Backend tests: 46 passed, including fresh manual reviews, stale reorder rejection, and pending-suggestion superseding. Frontend API tests and production build passed during implementation.
 
 Groq live credentials/provider behavior were not verified with an external request; the integration is covered with local HTTP-stub tests.
 
@@ -28,7 +28,7 @@ Groq live credentials/provider behavior were not verified with an external reque
 
 ## Validation
 
-- Backend Maven suite: 43 tests passed.
+- Backend Maven suite: 46 tests passed.
 - Frontend Node test suite and Vite production build passed.
 - No live Groq request was made. The provider key shared in chat should be rotated in the Groq console before any deployment.
 
