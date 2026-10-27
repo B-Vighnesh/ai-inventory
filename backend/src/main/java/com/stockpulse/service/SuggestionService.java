@@ -62,6 +62,8 @@ public class SuggestionService {
         entityManager.refresh(s);
         requirePending(s.getStatus());
         if (action == Action.ACCEPT) {
+            if (s.getCurrentStock() != p.getStockLevel())
+                throw ApiException.conflict("Stock changed since this recommendation; reject it and request a new review");
             if (s.getRecommendedQuantity() > Integer.MAX_VALUE - p.getStockLevel()) throw ApiException.conflict("Stock limit exceeded");
             p.setStockLevel(p.getStockLevel() + s.getRecommendedQuantity());
             snapshots.save(new InventorySnapshot(p, demand.velocity(p.getId()), com.stockpulse.enums.InventoryChange.REORDER_ACCEPTED, Instant.now()));

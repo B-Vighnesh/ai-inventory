@@ -6,6 +6,7 @@ import com.stockpulse.repository.*;
 import com.stockpulse.service.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
+import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -48,6 +49,19 @@ public class GenerationStore {
         // Never persist AI advice based on stock, price, or demand that changed while the model was running.
         if (!latest.equals(requested)) result = engine.fallback(latest, "Inventory changed during review; rules recalculated on current data");
         CommerceAdvice advice = result.advice();
+        // The product row lock serializes generation with accept/reject actions. Retire
+        // every older pending recommendation of each type before inserting the fresh pair.
+        Instant supersededAt = Instant.now();
+        if (type != SuggestionType.REORDER) {
+            var oldPricing = pricing.findAllByProductIdAndStatus(p.getId(), SuggestionStatus.PENDING);
+            oldPricing.forEach(s -> { s.setStatus(SuggestionStatus.SUPERSEDED); s.setResolvedAt(supersededAt); });
+            pricing.saveAll(oldPricing);
+        }
+        if (type != SuggestionType.PRICING) {
+            var oldReorders = reorders.findAllByProductIdAndStatus(p.getId(), SuggestionStatus.PENDING);
+            oldReorders.forEach(s -> { s.setStatus(SuggestionStatus.SUPERSEDED); s.setResolvedAt(supersededAt); });
+            reorders.saveAll(oldReorders);
+        }
         var price = pricing.findFirstByProductIdAndTriggerReasonAndStatusOrderByCreatedAtDesc(p.getId(), requested.triggerReason(), SuggestionStatus.PENDING);
         var reorder = reorders.findFirstByProductIdAndTriggerReasonAndStatusOrderByCreatedAtDesc(p.getId(), requested.triggerReason(), SuggestionStatus.PENDING);
         String pricingId = null, reorderId = null;

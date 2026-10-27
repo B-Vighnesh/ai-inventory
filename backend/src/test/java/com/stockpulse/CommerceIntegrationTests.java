@@ -134,6 +134,21 @@ class CommerceIntegrationTests {
         assertThat(saved.source()).isEqualTo(RecommendationSource.RULE_BASED_FALLBACK);
         assertThat(pricing.findById(saved.pricingId()).orElseThrow().getRecommendedPrice()).isEqualByComparingTo("110");
     }
+    @Test void newGenerationSupersedesOlderPendingSuggestionsOfBothTypes() {
+        Product p = product(20, 10);
+        var old = store.save(store.context(p.getId(), TriggerReason.MANUAL),
+            engine.recommend(store.context(p.getId(), TriggerReason.MANUAL), null), SuggestionType.BOTH);
+
+        var context = store.context(p.getId(), TriggerReason.DEMAND_SPIKE);
+        var fresh = store.save(context, engine.recommend(context, null), SuggestionType.BOTH);
+
+        assertThat(pricing.findById(old.pricingId()).orElseThrow().getStatus()).isEqualTo(SuggestionStatus.SUPERSEDED);
+        assertThat(reorders.findById(old.reorderId()).orElseThrow().getStatus()).isEqualTo(SuggestionStatus.SUPERSEDED);
+        assertThat(pricing.findById(fresh.pricingId()).orElseThrow().getStatus()).isEqualTo(SuggestionStatus.PENDING);
+        assertThat(reorders.findById(fresh.reorderId()).orElseThrow().getStatus()).isEqualTo(SuggestionStatus.PENDING);
+        assertThat(pricing.findAll().stream().filter(s -> s.getProduct().getId().equals(p.getId()) && s.getStatus() == SuggestionStatus.PENDING)).hasSize(1);
+        assertThat(reorders.findAll().stream().filter(s -> s.getProduct().getId().equals(p.getId()) && s.getStatus() == SuggestionStatus.PENDING)).hasSize(1);
+    }
     @Test void concurrentRequestsCannotDuplicatePendingRecommendations() throws Exception {
         Product p = product(4, 10);
         var pool = java.util.concurrent.Executors.newFixedThreadPool(4);

@@ -151,6 +151,18 @@ class StockPulseApiTests {
     }
 
     @Test
+    void staleReorderAcceptanceReturnsConflictWithoutChangingStock() throws Exception {
+        ReorderSuggestion s = reorderSuggestion("PRD-006");
+        Product p = products.findById("PRD-006").orElseThrow();
+        p.setStockLevel(p.getStockLevel() + 1);
+        products.saveAndFlush(p);
+
+        mvc.perform(patch("/reorder-suggestions/" + s.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"ACCEPT\"}"))
+            .andExpect(status().isConflict());
+        assertThat(products.findById("PRD-006").orElseThrow().getStockLevel()).isEqualTo(s.getCurrentStock() + 1);
+    }
+
+    @Test
     void rejectingReorderPreservesStockAndClearsStaleReview() throws Exception {
         ReorderSuggestion s = reorderSuggestion("PRD-003");
         mvc.perform(patch("/reorder-suggestions/" + s.getId()).contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"REJECT\"}"))

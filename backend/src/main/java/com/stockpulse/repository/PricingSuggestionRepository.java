@@ -6,4 +6,5 @@ public interface PricingSuggestionRepository extends JpaRepository<PricingSugges
     java.util.Optional<PricingSuggestion> findFirstByProductIdAndTriggerReasonAndStatusOrderByCreatedAtDesc(
         String productId, com.stockpulse.enums.TriggerReason triggerReason, SuggestionStatus status);
     boolean existsByProductIdAndStatus(String productId, SuggestionStatus status);
+    java.util.List<PricingSuggestion> findAllByProductIdAndStatus(String productId, SuggestionStatus status);
 }
