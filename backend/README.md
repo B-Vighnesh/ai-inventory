@@ -1,6 +1,6 @@
 # StockPulse backend
 
-Java 17 / Spring Boot 3.5.7 REST API with Spring Data JPA, validation, and an H2 database in PostgreSQL compatibility mode. All application code is under `com.stockpulse`. The original project in the parent folder is separate; run these commands from `backend/`.
+Java 17 / Spring Boot 3.5.7 REST API with Spring Data JPA, validation, and an H2 database in PostgreSQL compatibility mode. All application code is under `com.stockpulse`. Run these commands from `backend/`.
 
 ## Run and test
 
@@ -14,6 +14,18 @@ cd backend
 ```
 
 On Windows PowerShell use `.\mvnw.cmd spring-boot:run` and `.\mvnw.cmd clean verify`. The API listens on `http://localhost:8080`.
+
+## Local configuration and Groq
+
+`backend/.env` holds local settings and is ignored by Git. To set up another checkout, copy `.env.example` to `.env`. The application imports `.env` automatically when launched from `backend/` or from the repository root. These files use Java properties syntax: `KEY=value`, without surrounding quotes or `export`. Environment variables supplied by the operating system override values from the file. See [Spring Boot external configuration](https://docs.spring.io/spring-boot/3.5/reference/features/external-config.html).
+
+`PORT`, `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` configure the application. The database still defaults to disposable in-memory H2. A PostgreSQL URL alone is insufficient: its JDBC driver, migrations, and production schema/seed configuration must also be added. Tests disable local env imports and use a separate H2 database.
+
+For Groq, put a key from [Groq API Keys](https://console.groq.com/keys) in `GROQ_API_KEY`. The template sets `GROQ_BASE_URL=https://api.groq.com/openai/v1`, `GROQ_MODEL=openai/gpt-oss-20b`, and `GROQ_TIMEOUT=20s`. The model appears in the published Free plan limits; confirm your organization's availability and exact quotas in [Groq's rate-limit documentation](https://console.groq.com/docs/rate-limits). Request and token quotas vary, and exceeding a limit returns HTTP 429 with `retry-after`.
+
+These Groq values are exposed as `stockpulse.groq.*` configuration for future client integration. There is currently no Groq client, request, response parser, or suggestion generator. Adding a key does not enable suggestions or make external API calls. Keep the key in the backend env file; never include it in frontend configuration or source control.
+
+See [INTEGRATION_REVIEW.md](INTEGRATION_REVIEW.md) for the inspected implementation and remaining work.
 
 H2 is in memory: data resets on restart. Hibernate creates the schema and `data.sql` inserts the eight requested products after initialization. Suggestion tables start empty. Suggestion generation and creation endpoints are intentionally outside this scope; integration tests create fixtures through repositories. No AI or strategy implementation is included.
 
@@ -87,7 +99,7 @@ Resolution examples return 404 until a suggestion exists. Resolving a non-PENDIN
 - `repository/`: JPA repositories and a pessimistic product lock to serialize stock updates and suggestion resolution per product.
 - `service/`: transactional business rules; each suggestion resolution is one transaction.
 - `api/` and `api/dto/`: thin controllers, record DTOs, and JSON error handling (400 validation, 404 missing resources, 409 conflicts).
-- `events/`: `StockChangedEvent` is published after saving stock PATCH and order changes, within the service transaction. The future listener should use `@TransactionalEventListener` to act only after commit; no listener is implemented.
+- `events/`: `StockChangedEvent` is published after saving stock PATCH and order changes. `StockChangedListener` dispatches to `StockChangeHandler` beans after commit. No handler implementation is registered yet.
 - `config/`: frontend CORS configuration.
 - `src/test/`: MockMvc integration tests for order updates/conflicts, suggestion resolution, stock status, validation, filtering, CORS, and event publication.
 

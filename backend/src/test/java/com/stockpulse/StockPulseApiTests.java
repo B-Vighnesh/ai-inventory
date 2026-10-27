@@ -21,7 +21,12 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "spring.config.import=",
+    "spring.datasource.url=jdbc:h2:mem:stockpulse-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
+    "spring.datasource.username=sa",
+    "spring.datasource.password="
+})
 @AutoConfigureMockMvc
 @Transactional
 @RecordApplicationEvents
