@@ -1,7 +1,9 @@
 package com.stockpulse.service;
+import com.stockpulse.enums.ProductStatus;
+import com.stockpulse.enums.SuggestionStatus;
 import com.stockpulse.domain.*;
 import com.stockpulse.api.dto.*;
-import com.stockpulse.api.dto.ResolveRequest.Action;
+import com.stockpulse.enums.Action;
 import com.stockpulse.repository.*;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;

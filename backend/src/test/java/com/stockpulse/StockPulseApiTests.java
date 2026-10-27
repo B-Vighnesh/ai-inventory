@@ -1,4 +1,7 @@
 package com.stockpulse;
+import com.stockpulse.enums.Category;
+import com.stockpulse.enums.Direction;
+import com.stockpulse.enums.ProductStatus;
 
 import com.stockpulse.domain.*;
 import com.stockpulse.events.StockChangedEvent;

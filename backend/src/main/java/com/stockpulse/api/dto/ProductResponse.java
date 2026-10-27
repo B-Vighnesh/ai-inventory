@@ -1,4 +1,6 @@
 package com.stockpulse.api.dto;
+import com.stockpulse.enums.Category;
+import com.stockpulse.enums.ProductStatus;
 import com.stockpulse.domain.*;
 import java.math.BigDecimal;
 public record ProductResponse(String id, String sku, String name, Category category,

@@ -1,4 +1,6 @@
 package com.stockpulse.domain;
+import com.stockpulse.enums.SuggestionStatus;
+import com.stockpulse.enums.TriggerReason;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;

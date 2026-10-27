@@ -1,5 +1,5 @@
 package com.stockpulse.api.dto;
-import com.stockpulse.domain.Category;
+import com.stockpulse.enums.Category;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 public record CreateProductRequest(

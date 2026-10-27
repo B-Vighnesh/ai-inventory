@@ -1,4 +1,6 @@
 package com.stockpulse.domain;
+import com.stockpulse.enums.Category;
+import com.stockpulse.enums.ProductStatus;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;

@@ -1,6 +1,6 @@
 package com.stockpulse.api;
 import com.stockpulse.api.dto.*;
-import com.stockpulse.domain.SuggestionStatus;
+import com.stockpulse.enums.SuggestionStatus;
 import com.stockpulse.service.SuggestionService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;

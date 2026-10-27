@@ -1,4 +1,4 @@
-﻿# StockPulse backend
+# StockPulse backend
 
 Java 17 / Spring Boot 3.5.7 REST API with Spring Data JPA, validation, and an H2 database in PostgreSQL compatibility mode. All application code is under `com.stockpulse`. The original project in the parent folder is separate; run these commands from `backend/`.
 
@@ -82,7 +82,8 @@ Resolution examples return 404 until a suggestion exists. Resolving a non-PENDIN
 
 ## Structure and behavior
 
-- `domain/`: product and suggestion entities and enums; supplier fields are Sprint 2 placeholders.
+- `domain/`: product and suggestion entities; supplier fields are Sprint 2 placeholders.
+- `enums/`: shared category, status, direction, trigger, and resolution action enums.
 - `repository/`: JPA repositories and a pessimistic product lock to serialize stock updates and suggestion resolution per product.
 - `service/`: transactional business rules; each suggestion resolution is one transaction.
 - `api/` and `api/dto/`: thin controllers, record DTOs, and JSON error handling (400 validation, 404 missing resources, 409 conflicts).

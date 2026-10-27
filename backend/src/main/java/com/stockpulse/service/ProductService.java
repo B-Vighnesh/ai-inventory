@@ -1,4 +1,6 @@
 package com.stockpulse.service;
+import com.stockpulse.enums.Category;
+import com.stockpulse.enums.ProductStatus;
 import com.stockpulse.domain.*;
 import com.stockpulse.api.dto.*;
 import com.stockpulse.events.StockChangedEvent;

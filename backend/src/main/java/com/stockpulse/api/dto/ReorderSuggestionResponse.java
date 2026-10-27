@@ -1,4 +1,6 @@
 package com.stockpulse.api.dto;
+import com.stockpulse.enums.SuggestionStatus;
+import com.stockpulse.enums.TriggerReason;
 import com.stockpulse.domain.*;
 import java.math.BigDecimal;
 import java.time.Instant;
