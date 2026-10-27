@@ -1,0 +1,60 @@
+49 repos/projects total — verified live from disk just now.
+
+47 cloned in ~/workspace/repos/
++ 2 outside that folder: OpenDots + REA
+Those became 98 skill folders in ~/workspace/custom-skills/ — HyperFrames alone is 27 skills, Remotion is 12
+Duplicates you re-sent (Harvey, VoiceStudio) aren't double-counted
+All 49
+Scrapling — D4Vinci/Scrapling
+ECC — affaan-m/ECC
+Ruflo — ruvnet/ruflo
+Strix — usestrix/strix
+ElevenLabs UI — elevenlabs/ui
+Home Assistant Core — home-assistant/core
+Agentic Awesome Skills — sickn33/agentic-awesome-skills — tree held as-is on your call
+awesome-saas-boilerplates — xcomptek/awesome-saas-boilerplates
+Kage-Optimise — devinilabs/kage-optimise
+system-prompts-and-models — x1xhlol/system-prompts-and-models-of-ai-tools
+public-apis — public-apis/public-apis
+PentAGI — vxcontrol/pentagi
+iFixAi — ifixai-ai/iFixAi
+nvm — nvm-sh/nvm
+VoiceStudio — debpalash/VoiceStudio
+open-higgsfield — wide-trace/open-higgsfield
+security-audit-skill — cloudflare/security-audit-skill
+MiroFish — 666ghj/MiroFish
+agency-agents — msitarzewski/agency-agents
+brag — latent-spaces/brag — partial clone
+harvey — ethanplusai/harvey
+claude-code — anthropics/claude-code
+OpenWA — rmyndharis/OpenWA
+hypit — hypit-ai/hypit
+logo-design-skill — kaankiziltug/logo-design-skill
+FreeDomain — DigitalPlatDev/FreeDomain
+emilkowalski-skills — emilkowalski/skills — saved as apple-design
+remotion-skills — remotion-dev/skills — 12 skills
+hyperframes — heygen-com/hyperframes — 27 skills
+superpowers — obra/superpowers — via MadeToScale Top 15 PDF
+mattpocock-skills — mattpocock/skills — via MadeToScale PDF
+anthropic-skills — anthropics/skills — via MadeToScale PDF
+ponytail — DietrichGebert/ponytail — via MadeToScale PDF
+ui-ux-pro-max-skill — nextlevelbuilder/ui-ux-pro-max-skill — via MadeToScale PDF
+gstack — garrytan/gstack — via MadeToScale PDF
+caveman — JuliusBrussee/caveman — via MadeToScale PDF
+agent-skills-addy — addyosmani/agent-skills — via MadeToScale PDF
+claude-mem — thedotmack/claude-mem — via MadeToScale PDF, partial blobless clone
+agent-reach — Panniantong/Agent-Reach — via MadeToScale PDF
+taste-skill — Leonxlnx/taste-skill — via MadeToScale PDF
+understand-anything — Egonex-AI/Understand-Anything — via MadeToScale PDF
+archify — tt-a1i/archify — via MadeToScale PDF
+career-ops — career-ops-hq/career-ops — via MadeToScale PDF
+claude-seo — AgriciDaniel/claude-seo
+geo-seo-claude — zubair-trabzada/geo-seo-claude
+marketingskills — coreyhaines31/marketingskills
+firecrawl-workflows — firecrawl/firecrawl-workflows
+OpenDots — CopilotKit/OpenDots — at ~/workspace/opendots/
+REA — npm rea-agents@6.7.0 — at ~/workspace/rea/, not a git clone
+
+Plus 3 non-repo sources you gave me as skills: Sorry, Steve PDF (→ apple-design), MadeToScale Top 15 PDF (→ projects 30-43 + madetoscale-top15 router), and MiniMax Design website (skill only, no repo).
+
+Full inventory with HEADs, skill names, and notes is here:

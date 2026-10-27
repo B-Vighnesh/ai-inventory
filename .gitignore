@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local Maven dependency cache
+.maven-cache/
+
+# Portable build tools
+.tools/
