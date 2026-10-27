@@ -1,6 +1,6 @@
 # Backend integration review
 
-Inspected 27 October 2026: all backend application sources, Maven configuration and wrapper settings, resources, integration tests, and the repository layout. `backend/` is the application; no frontend or deployment configuration is present in the repository. This review describes remaining integrations; it does not implement the future AI feature.
+Inspected 27 October 2026: all backend application sources, Maven configuration and wrapper settings, resources, integration tests, and the repository layout. `backend/` contains the API. A React/Vite frontend is now present in `stockpulse-frontend/`; deployment configuration remains to be added. This review describes remaining integrations; it does not implement the future AI feature.
 
 ## Implemented
 
@@ -34,7 +34,7 @@ Groq documents the compatible base URL as `https://api.groq.com/openai/v1`. `ope
 | Before deployment | Operations | No container/deployment setup, health endpoints, CI workflow, or provider-call monitoring exists. Add these when selecting a hosting environment. |
 | As data grows | API scale | List endpoints return all matching records. Add pagination and indexes based on production queries and expected volume. |
 | Sprint 2 | Suppliers and real inbound stock | `costPrice` and `supplierId` remain placeholders. Reorder acceptance adds stock immediately; supplier APIs, purchase orders, and delivery confirmation are not implemented. |
-| When connecting a UI | Frontend | Backend routes and CORS are ready for a local frontend. The UI client, error/loading states, and refresh after suggestion resolution remain external integrations. |
+| Connected locally | Frontend | `stockpulse-frontend/` now uses a Vite proxy to load inventory and suggestions, save sales/stock changes, resolve suggestions, and refresh after changes. Connection errors are explicit; demo mode is opt-in. Manual generation remains unavailable until backend endpoints exist. |
 
 ## Existing behavior to account for
 
