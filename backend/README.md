@@ -23,11 +23,11 @@ On Windows PowerShell use `.\mvnw.cmd spring-boot:run` and `.\mvnw.cmd clean ver
 
 For Groq, put a key from [Groq API Keys](https://console.groq.com/keys) in `GROQ_API_KEY`. The template sets `GROQ_BASE_URL=https://api.groq.com/openai/v1`, `GROQ_MODEL=openai/gpt-oss-20b`, and `GROQ_TIMEOUT=20s`. The model appears in the published Free plan limits; confirm your organization's availability and exact quotas in [Groq's rate-limit documentation](https://console.groq.com/docs/rate-limits). Request and token quotas vary, and exceeding a limit returns HTTP 429 with `retry-after`.
 
-These Groq values are exposed as `stockpulse.groq.*` configuration for future client integration. There is currently no Groq client, request, response parser, or suggestion generator. Adding a key does not enable suggestions or make external API calls. Keep the key in the backend env file; never include it in frontend configuration or source control.
+The backend uses the configured Groq-compatible API when strategy is `AI`; invalid, unavailable, or unconfigured responses fall back to deterministic rules. Keep the key in the backend env file; never include it in frontend configuration or source control. A key shared in chat should be rotated before deployment.
 
 See [INTEGRATION_REVIEW.md](INTEGRATION_REVIEW.md) for the inspected implementation and remaining work.
 
-H2 is in memory: data resets on restart. Hibernate creates the schema and `data.sql` inserts the eight requested products after initialization. Suggestion tables start empty. Suggestion generation and creation endpoints are intentionally outside this scope; integration tests create fixtures through repositories. No AI or strategy implementation is included.
+H2 is in memory: data resets on restart. Hibernate creates the schema and `data.sql` inserts the eight demo products after initialization. Demand uses timestamped orders and a rolling 24-hour total. Recommendations can be generated manually or after configured inventory events; jobs run asynchronously. Initial/manual advice can populate pricing and reorder suggestions. This project is a local demo: configure a persistent database and access control before shared deployment.
 
 CORS allows `http://localhost:5173` and `http://localhost:4200`. Money uses decimal values with at most two fractional digits. New products derive status from stock and default demand velocity to zero. An order body of `{}` defaults quantity to one. Demand velocity is an accumulated counter in this release; a rolling 24-hour calculation requires future order-history or scheduled processing.
 
@@ -92,6 +92,22 @@ curl -X PATCH http://localhost:8080/reorder-suggestions/EXISTING-UUID -H 'Conten
 
 Resolution examples return 404 until a suggestion exists. Resolving a non-PENDING suggestion returns 409. Pricing acceptance applies the recommended price; reorder acceptance simulates inbound stock. Pricing resolution clears PRICE_REVIEW_PENDING only after the last pending pricing suggestion is resolved. Reorder rejection also clears stale PRICE_REVIEW_PENDING if there are no pending pricing suggestions. Rejection otherwise leaves product data unchanged.
 
+## Commerce recommendations and history
+
+```text
+GET   /settings/commerce
+PATCH /settings/commerce                       {"strategy":"AI","demandSpikeMultiplier":3}
+POST  /products/{id}/review                    generate pricing + reorder advice (202)
+POST  /products/{id}/suggest-pricing           pricing advice job (202)
+POST  /products/{id}/suggest-reorder            reorder advice job (202)
+GET   /recommendation-jobs                     recent asynchronous jobs
+GET   /recommendation-jobs/{jobId}             poll one job
+POST  /products/{id}/suggest-pricing/stream    pricing advice as SSE
+GET   /products/{id}/history                   price and inventory history
+```
+
+Stock/order changes can enqueue low-stock or demand-spike reviews after commit. `COMMERCE_EVENTS_ENABLED` and `INITIAL_GENERATION` control automatic triggers. `COMMERCE_STRATEGY` is `AI` or `RULES`; runtime updates use the settings endpoint. The recommendation job queue is in-memory, so queued work does not survive a process restart. Recommendations are advisory; accepting a pricing suggestion is still explicit and rejects stale prices.
+
 ## Structure and behavior
 
 - `domain/`: product and suggestion entities; supplier fields are Sprint 2 placeholders.
@@ -99,7 +115,10 @@ Resolution examples return 404 until a suggestion exists. Resolving a non-PENDIN
 - `repository/`: JPA repositories and a pessimistic product lock to serialize stock updates and suggestion resolution per product.
 - `service/`: transactional business rules; each suggestion resolution is one transaction.
 - `api/` and `api/dto/`: thin controllers, record DTOs, and JSON error handling (400 validation, 404 missing resources, 409 conflicts).
-- `events/`: `StockChangedEvent` is published after saving stock PATCH and order changes. `StockChangedListener` dispatches to `StockChangeHandler` beans after commit. No handler implementation is registered yet.
+- `events/`: stock changes are dispatched after commit to the commerce recommendation handler.
+- `ai/` and `commerce/`: Groq client, advisor strategies, validation, queue, job lifecycle, and persistence.
+- `prompts/`: bounded prompts used by Groq advisor.
+- `domain/`: inventory snapshots, price changes, and sale history support historical context.
 - `config/`: frontend CORS configuration.
 - `src/test/`: MockMvc integration tests for order updates/conflicts, suggestion resolution, stock status, validation, filtering, CORS, and event publication.
 

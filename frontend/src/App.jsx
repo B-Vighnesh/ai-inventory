@@ -2,11 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, resetDemo } from './api.js'
 import { HOT_MULT, categoryAverages, money, TRIGGERS } from './utils.js'
 import { Masthead, Kpis, Inbox, Catalog, ActivityFeed, Toasts } from './components.jsx'
+import { StrategyPanel, JobsPanel, HistoryPanel, ReasoningStream, CreateProduct } from './commerce-components.jsx'
 
 const POLL_MS = 4000
 
 export default function App() {
   const [mode, setMode] = useState(null)
+  const [settings, setSettings] = useState(null)
+  const [jobs, setJobs] = useState([])
+  const [historyProduct, setHistoryProduct] = useState(null)
+  const [stream, setStream] = useState(null)
   const [products, setProducts] = useState([])
   const [suggestions, setSuggestions] = useState({ pricing: [], reorder: [] })
   const [loading, setLoading] = useState(true)
@@ -49,7 +54,8 @@ export default function App() {
     refreshInFlight.current = true
     setRefreshing(true)
     try {
-      const [prods, sugg] = await Promise.all([api.listProducts(), api.listSuggestions()])
+      const [prods, sugg, config, work] = await Promise.all([api.listProducts(), api.listSuggestions(),
+        api.mode === 'live' ? api.getSettings() : null, api.mode === 'live' ? api.listJobs() : []])
       if (version !== refreshVersion.current) return false
       const all = [...sugg.pricing, ...sugg.reorder]
 
@@ -82,6 +88,8 @@ export default function App() {
       all.forEach((s) => seen.current.add(s.id))
       initialised.current = true
 
+      setSettings(config)
+      setJobs(work)
       setProducts(prods)
       setSuggestions(sugg)
       setLastSync(Date.now())
@@ -155,11 +163,25 @@ export default function App() {
 
   const onReview = (p) =>
     run(`prod-${p.id}`, async () => {
-      await api.suggest(p.id, 'pricing')
-      await api.suggest(p.id, 'reorder')
+      if (api.mode === 'live') await api.review(p.id)
+      else { await api.suggest(p.id, 'pricing'); await api.suggest(p.id, 'reorder') }
       addLog('manual', `Manual review requested for ${p.name}`)
-      toast(`Advisor reviewed ${p.name}`, 'ok')
+      toast(`Review queued for ${p.name}`, 'ok')
     })
+
+  const onStream = (p) => run(`prod-${p.id}`, async () => {
+    setStream({ name: p.name, text: '', status: 'Connecting', source: null })
+    try {
+      await api.streamPrice(p.id, (event, value) => {
+        if (event === 'token') setStream(old => ({ ...old, text: (old.text + value.text).slice(-16000), status: 'Receiving recommendation' }))
+        if (event === 'queued') setStream(old => ({ ...old, status: 'Review queued' }))
+        if (event === 'result') setStream(old => ({ ...old, status: value.message, source: value.source, done: true }))
+      })
+    } catch (error) {
+      setStream(old => ({ ...old, status: error.message, done: true }))
+      throw error
+    }
+  })
 
   const onResolve = (s, action) =>
     run(`${s.type}-${s.id}`, async () => {
@@ -200,6 +222,7 @@ export default function App() {
 
   /* ---------- derived ---------- */
   const avgs = useMemo(() => categoryAverages(products), [products])
+  const hotMultiplier = settings?.demandSpikeMultiplier || HOT_MULT
 
   const groups = useMemo(() => {
     const byId = Object.fromEntries(products.map((p) => [p.id, p]))
@@ -219,9 +242,9 @@ export default function App() {
   const kpis = useMemo(() => ({
     pending: suggestions.pricing.length + suggestions.reorder.length,
     low: products.filter((p) => p.stockLevel > 0 && p.stockLevel < p.reorderThreshold).length,
-    hot: products.filter((p) => avgs[p.category] > 0 && p.demandVelocity > avgs[p.category] * HOT_MULT).length,
+    hot: products.filter((p) => p.demandVelocity >= 3 && p.demandVelocity > avgs[p.id] * hotMultiplier).length,
     out: products.filter((p) => p.stockLevel === 0).length,
-  }), [products, suggestions, avgs])
+  }), [products, suggestions, avgs, hotMultiplier])
 
   const visible = useMemo(() => {
     const q = filters.q.trim().toLowerCase()
@@ -237,7 +260,7 @@ export default function App() {
 
   return (
     <div className="page">
-      <Masthead mode={mode} lastSync={lastSync} watching={watching} refreshing={refreshing} onRefresh={refresh} onReset={onReset} />
+      <Masthead mode={mode} lastSync={lastSync} watching={mode === 'demo' ? watching : jobs.filter(j => ['QUEUED', 'RUNNING'].includes(j.status)).map(j => products.find(p => p.id === j.productId)?.name || j.productId).slice(0, 2).join(', ')} refreshing={refreshing} onRefresh={refresh} onReset={onReset} />
 
       {error && (
         <div className="banner" role="alert">
@@ -252,28 +275,34 @@ export default function App() {
         </div>
       )}
 
-      {mode === 'live' && (
-        <div className="banner info">
-          Inventory changes are saved to the backend. Automatic recommendations and advisor requests are not available yet.
-        </div>
+      {mode === 'live' && settings && (
+        <StrategyPanel settings={settings} busy={busy.has('settings')} onSave={(next) => run('settings', () => api.updateSettings(next))} />
       )}
 
-      <Kpis {...kpis} />
+      <Kpis {...kpis} hotMultiplier={hotMultiplier} />
+      {mode === 'live' && <CreateProduct onCreate={(product) => run('create', async () => {
+        const result = await api.createProduct(product); toast(`Created ${result.name}`); return result
+      })} busy={busy.has('create')} />}
+      {stream && <ReasoningStream stream={stream} onClose={() => setStream(null)} />}
+      {historyProduct && <HistoryPanel product={historyProduct} onClose={() => setHistoryProduct(null)} />}
+
 
       <main className="layout">
         <div className="col-left">
           <Inbox
             groups={groups} fresh={fresh} busy={actionBusy} loading={loading}
-            onResolve={onResolve} hintProduct={mode === 'demo' ? hintProduct : null}
+            onResolve={onResolve} hintProduct={hintProduct}
             onHint={() => hintProduct && onSell(hintProduct, 1)}
           />
+          {mode === 'live' && <JobsPanel jobs={jobs} products={products} />}
           <ActivityFeed items={log} />
         </div>
         <div className="col-right">
           <Catalog
             products={visible} avgs={avgs} busy={actionBusy} loading={loading}
             pendingByProduct={pendingByProduct} filters={filters} setFilters={setFilters}
-            onSell={onSell} onSetStock={onSetStock} onReview={mode === 'demo' ? onReview : undefined}
+            onSell={onSell} onSetStock={onSetStock} onReview={onReview} onHistory={mode === 'live' ? setHistoryProduct : undefined}
+            onStream={mode === 'live' ? onStream : undefined} hotMultiplier={hotMultiplier}
           />
         </div>
       </main>

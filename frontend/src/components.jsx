@@ -82,11 +82,11 @@ export function Masthead({ mode, lastSync, watching, onRefresh, onReset, refresh
   )
 }
 
-export function Kpis({ pending, low, hot, out }) {
+export function Kpis({ pending, low, hot, out, hotMultiplier = HOT_MULT }) {
   const items = [
     { n: pending, label: 'Awaiting approval', tone: pending ? 'teal' : '' },
     { n: low, label: 'Below reorder threshold', tone: low ? 'accent' : '' },
-    { n: hot, label: `Demand hot (≥${HOT_MULT}× avg)`, tone: hot ? 'amber' : '' },
+    { n: hot, label: `Demand hot (≥${hotMultiplier}× avg)`, tone: hot ? 'amber' : '' },
     { n: out, label: 'Out of stock', tone: out ? 'danger' : '' },
   ]
   return (
@@ -121,6 +121,7 @@ function PricingCard({ s, fresh, busy, onResolve }) {
           {dir === 'HOLD' ? 'Hold' : signedPct(s.currentPrice, s.recommendedPrice)}
         </span>
       </div>
+      <div className="source-note">{s.source === 'AI' ? 'AI recommendation' : s.source === 'RULE_BASED_FALLBACK' ? 'Rules fallback' : 'Rule-based recommendation'}{s.generationNote && ` ? ${s.generationNote}`}</div>
       <Reasoning text={s.reasoning} />
       <div className="sg-actions">
         <span className="when">{timeAgo(s.createdAt)}</span>
@@ -150,6 +151,7 @@ function ReorderCard({ s, fresh, busy, onResolve }) {
           {s.suggestedLeadTimeDays != null && <> · {s.suggestedLeadTimeDays}d lead time</>}
         </span>
       </div>
+      <div className="source-note">{s.source === 'AI' ? 'AI recommendation' : s.source === 'RULE_BASED_FALLBACK' ? 'Rules fallback' : 'Rule-based recommendation'}{s.generationNote && ` ? ${s.generationNote}`}</div>
       <Reasoning text={s.reasoning} />
       <div className="sg-actions">
         <span className="when">{timeAgo(s.createdAt)}</span>
@@ -228,10 +230,10 @@ function StockBar({ stock, threshold }) {
   )
 }
 
-function ProductCard({ p, avg, busy, pendingCount, onSell, onSetStock, onReview }) {
+function ProductCard({ p, avg, busy, pendingCount, onSell, onSetStock, onReview, onHistory, onStream, hotMultiplier }) {
   const [stockInput, setStockInput] = useState('')
   const ratio = avg ? p.demandVelocity / avg : 0
-  const hot = avg > 0 && p.demandVelocity > avg * HOT_MULT
+  const hot = p.demandVelocity >= 3 && p.demandVelocity > avg * hotMultiplier
   const low = p.stockLevel > 0 && p.stockLevel < p.reorderThreshold
   const submit = (e) => {
     e.preventDefault()
@@ -263,11 +265,16 @@ function ProductCard({ p, avg, busy, pendingCount, onSell, onSetStock, onReview 
           <div className="m-val">{p.stockLevel}<small> / {p.reorderThreshold}</small></div>
         </div>
         <div>
-          <div className="m-label">Demand count</div>
+          <div className="m-label">Velocity 24h</div>
           <div className="m-val">{p.demandVelocity}<small> · {ratio.toFixed(1)}× avg</small></div>
         </div>
       </div>
       <StockBar stock={p.stockLevel} threshold={p.reorderThreshold} />
+      {p.costPrice != null && <p className="margin-line">Margin {pct((p.currentPrice - p.costPrice) / p.currentPrice)} ? cost {money(p.costPrice)}</p>}
+      {(onHistory || onStream) && <div className="prod-actions">
+        {onHistory && <button className="link" onClick={() => onHistory(p)}>Price &amp; stock history</button>}
+        {onStream && <button className="link push" disabled={busy} onClick={() => onStream(p)}>Live reasoning</button>}
+      </div>}
 
       <div className="prod-actions">
         <button className="btn ghost sm" disabled={busy || p.stockLevel < 1} onClick={() => onSell(p, 1)}>
@@ -283,7 +290,7 @@ function ProductCard({ p, avg, busy, pendingCount, onSell, onSetStock, onReview 
           <button className="btn ghost sm" disabled={busy || stockInput === ''}>Set</button>
         </form>
         {onReview && (
-          <button className="link push" disabled={busy} onClick={() => onReview(p)} title="Request a simulated pricing and reorder review">
+          <button className="link push" disabled={busy} onClick={() => onReview(p)} title="Request a pricing and reorder review">
             Ask advisor
           </button>
         )}
@@ -293,7 +300,7 @@ function ProductCard({ p, avg, busy, pendingCount, onSell, onSetStock, onReview 
 }
 
 export function Catalog({
-  products, avgs, busy, pendingByProduct, filters, setFilters, onSell, onSetStock, onReview, loading,
+  products, avgs, busy, pendingByProduct, filters, setFilters, onSell, onSetStock, onReview, onHistory, onStream, hotMultiplier = HOT_MULT, loading,
 }) {
   const cats = ['ALL', 'ELECTRONICS', 'APPAREL', 'HOME']
   return (
@@ -334,9 +341,9 @@ export function Catalog({
         <div className="grid">
           {products.map((p) => (
             <ProductCard
-              key={p.id} p={p} avg={avgs[p.category]} busy={busy.has(`prod-${p.id}`)}
+              key={p.id} p={p} avg={avgs[p.id]} busy={busy.has(`prod-${p.id}`)}
               pendingCount={pendingByProduct[p.id] || 0}
-              onSell={onSell} onSetStock={onSetStock} onReview={onReview}
+              onSell={onSell} onSetStock={onSetStock} onReview={onReview} onHistory={onHistory} onStream={onStream} hotMultiplier={hotMultiplier}
             />
           ))}
         </div>

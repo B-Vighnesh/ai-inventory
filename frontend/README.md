@@ -34,8 +34,8 @@ For deployment, configure a reverse proxy for `/api` to the backend, or set `VIT
 - Backend validation/conflict messages appear in notifications. Conflicts trigger a refresh to fetch the current state.
 - Failed loads show a disconnected state with Retry and automatic recovery. Previously loaded data stays visible with an error notice; changes are disabled until connected again. Failures never switch to fake data.
 - Timeouts do not automatically retry writes, since the backend may already have saved them.
-- Manual advisor requests and automatic suggestion generation are not implemented in the current backend. Live mode hides the advisor action and does not claim an agent is processing inventory changes. Empty suggestion lists are expected until backend generation is implemented. Existing suggestions can be approved or rejected.
-- Demand count displays the backend counter; the backend does not yet calculate a rolling 24-hour window.
+- Manual strategy review, pricing/reorder recommendation jobs, strategy configuration, job status, streamed price reasoning, product creation, and product history use the backend endpoints.
+- Demand count displays the backend's rolling 24-hour order total.
 
 ## Explicit demo mode
 
@@ -50,6 +50,11 @@ Set `VITE_DEMO_MODE=true` in this folder's `.env` and restart Vite to use the ex
 | Sale | `POST /products/{id}/orders` with `{ "quantity": n }` |
 | Stock edit | `PATCH /products/{id}/stock` with `{ "stockLevel": n }` |
 | Approve/reject | `PATCH /pricing-suggestions/{id}` or `/reorder-suggestions/{id}` with `{ "action": "ACCEPT" }` or `"REJECT"` |
+| Strategy settings | `GET/PATCH /settings/commerce` |
+| Manual review | `POST /products/{id}/review` |
+| Job status | `GET /recommendation-jobs` and `/recommendation-jobs/{jobId}` |
+| Product history | `GET /products/{id}/history` |
+| Create product | `POST /products` |
 
 ## Checks
 

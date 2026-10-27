@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createApiClient, ApiError } from '../src/api-client.js'
+import { createApiClient, ApiError, consumeEventStream } from '../src/api-client.js'
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json' },
@@ -74,5 +74,24 @@ test('rejects HTML fallback pages and handles non-JSON proxy failures', async ()
 test('does not dispatch unsupported suggestion actions', () => {
   const api = createApiClient({ fetchImpl: () => assert.fail('must not fetch') })
   assert.throws(() => api.resolve('unknown', 'id', 'ACCEPT'), /Invalid suggestion action/)
-  assert.equal(api.suggest, undefined)
+  assert.throws(() => api.suggest('id', 'unknown'), /Invalid suggestion type/)
+})
+
+
+test('streams recommendation tokens and completion across chunk boundaries', async () => {
+  const encoder = new TextEncoder()
+  const parts = ['event: token\ndata: {"text":"hello"}\n', '\nevent: result\ndata: {"status":"COMPLETED"}\n\n']
+  const stream = new ReadableStream({ start(controller) { parts.forEach(p => controller.enqueue(encoder.encode(p))); controller.close() } })
+  const events = []
+  await consumeEventStream(stream, (event, data) => events.push([event, data]))
+  assert.deepEqual(events, [['token', { text: 'hello' }], ['result', { status: 'COMPLETED' }]])
+})
+
+test('manual review and runtime settings use backend endpoints', async () => {
+  const calls = []
+  const api = createApiClient({ fetchImpl: async (url, options) => { calls.push([url, options.method]); return json({ status: 'QUEUED' }) } })
+  await api.review('PRD-003')
+  await api.updateSettings({ strategy: 'RULE_BASED', demandSpikeMultiplier: 3 })
+  await api.history('PRD-003')
+  assert.deepEqual(calls, [['/api/products/PRD-003/review', 'POST'], ['/api/settings/commerce', 'PATCH'], ['/api/products/PRD-003/history', 'GET']])
 })

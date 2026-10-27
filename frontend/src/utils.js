@@ -1,6 +1,4 @@
-// A product counts as "hot" when its 24h velocity exceeds this multiple of its category average.
-// The brief suggests 3x; the seed data tops out around 1.5x, so 1.4x keeps the demo path reachable.
-export const HOT_MULT = 1.4
+export const HOT_MULT = 3
 
 export const money = (n) =>
   n == null || Number.isNaN(Number(n))
@@ -24,15 +22,11 @@ export const timeAgo = (iso) => {
   return `${Math.floor(s / 3600)}h ago`
 }
 
-export const categoryAverages = (products) => {
-  const sums = {}
-  products.forEach((p) => {
-    const c = (sums[p.category] ||= { total: 0, n: 0 })
-    c.total += p.demandVelocity || 0
-    c.n += 1
-  })
-  return Object.fromEntries(Object.entries(sums).map(([k, v]) => [k, v.total / Math.max(1, v.n)]))
-}
+// Exclude the subject product, matching the backend category-peer comparison.
+export const categoryAverages = (products) => Object.fromEntries(products.map(product => {
+  const peers = products.filter(p => p.category === product.category && p.id !== product.id)
+  return [product.id, peers.length ? peers.reduce((sum, p) => sum + p.demandVelocity, 0) / peers.length : 0]
+}))
 
 export const prettyCategory = (c) => (c ? c.charAt(0) + c.slice(1).toLowerCase() : '')
 

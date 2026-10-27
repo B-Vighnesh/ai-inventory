@@ -23,6 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
     "spring.config.import=",
+    "stockpulse.commerce.events-enabled=false",
+    "stockpulse.commerce.strategy=RULE_BASED",
     "spring.datasource.url=jdbc:h2:mem:stockpulse-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
     "spring.datasource.username=sa",
     "spring.datasource.password="

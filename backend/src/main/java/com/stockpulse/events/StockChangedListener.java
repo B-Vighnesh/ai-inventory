@@ -15,6 +15,11 @@ public class StockChangedListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onStockChanged(StockChangedEvent event) {
-        handlers.orderedStream().forEach(handler -> handler.onStockChanged(event));
+        handlers.orderedStream().forEach(handler -> {
+            try { handler.onStockChanged(event); }
+            catch (RuntimeException failure) {
+                org.slf4j.LoggerFactory.getLogger(getClass()).warn("Stock handler failed for {} ({})", event.productId(), failure.getClass().getSimpleName());
+            }
+        });
     }
 }

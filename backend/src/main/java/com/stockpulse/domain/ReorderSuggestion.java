@@ -6,6 +6,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 @Entity
 public class ReorderSuggestion {
+    @Enumerated(EnumType.STRING)
+    private com.stockpulse.enums.RecommendationSource source = com.stockpulse.enums.RecommendationSource.RULE_BASED;
+    private String generationNote;
+    public com.stockpulse.enums.RecommendationSource getSource() { return source; }
+    public void setSource(com.stockpulse.enums.RecommendationSource source) { this.source = source; }
+    public String getGenerationNote() { return generationNote; }
+    public void setGenerationNote(String note) { this.generationNote = note; }
     @Id @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "product_id", nullable = false)

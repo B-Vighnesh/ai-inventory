@@ -44,6 +44,31 @@ export function createApiClient({ baseUrl = '/api', fetchImpl = globalThis.fetch
   const idPath = (id) => encodeURIComponent(id)
   return {
     mode: 'live',
+    getSettings: () => http('/settings/commerce'),
+    updateSettings: (settings) => http('/settings/commerce', { method: 'PATCH', body: settings }),
+    listJobs: () => http('/recommendation-jobs'),
+    review: (id) => http(`/products/${idPath(id)}/review`, { method: 'POST' }),
+    suggest: (id, type) => {
+      if (!['pricing', 'reorder'].includes(type)) throw new ApiError('Invalid suggestion type')
+      return http(`/products/${idPath(id)}/suggest-${type}`, { method: 'POST' })
+    },
+    history: (id) => http(`/products/${idPath(id)}/history`),
+    createProduct: (product) => http('/products', { method: 'POST', body: product }),
+    async streamPrice(id, onEvent) {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 60000)
+      try {
+        const response = await fetchImpl(base + `/products/${idPath(id)}/suggest-pricing/stream`, {
+          method: 'POST', headers: { Accept: 'text/event-stream' }, signal: controller.signal,
+        })
+        if (!response.ok) {
+          let body = {}; try { body = await response.json() } catch {}
+          throw new ApiError(body.message || `Streaming failed (${response.status})`, response.status)
+        }
+        if (!response.headers.get('content-type')?.includes('text/event-stream')) throw new ApiError('Invalid streaming response')
+        await consumeEventStream(response.body, onEvent)
+      } finally { clearTimeout(timer) }
+    },
     listProducts: () => http('/products'),
     async listSuggestions() {
       const [pricing, reorder] = await Promise.all([
@@ -64,4 +89,37 @@ export function createApiClient({ baseUrl = '/api', fetchImpl = globalThis.fetch
       return http(`/${type}-suggestions/${idPath(id)}`, { method: 'PATCH', body: { action } })
     },
   }
+}
+
+// POST-based SSE reader: fetch handles the request body/method that EventSource cannot.
+export async function consumeEventStream(body, onEvent) {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = '', event = 'message', data = [], completed = false
+  const line = (text) => {
+    text = text.replace(/\r$/, '')
+    if (text === '') {
+      if (data.length) {
+        const payload = JSON.parse(data.join('\n'))
+        onEvent(event, payload)
+        if (event === 'result') completed = true
+      }
+      event = 'message'; data = []
+    } else if (text.startsWith('event:')) event = text.slice(6).trim()
+    else if (text.startsWith('data:')) data.push(text.slice(5).trimStart())
+  }
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      buffer += done ? decoder.decode() : decoder.decode(value, { stream: true })
+      let index
+      while ((index = buffer.indexOf('\n')) >= 0) {
+        line(buffer.slice(0, index)); buffer = buffer.slice(index + 1)
+      }
+      if (done) break
+    }
+    if (buffer) line(buffer)
+    line('')
+    if (!completed) throw new ApiError('The stream ended before completion. Refresh to check the review status.')
+  } finally { reader.releaseLock() }
 }

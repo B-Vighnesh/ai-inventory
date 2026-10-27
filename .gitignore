@@ -73,39 +73,3 @@ Desktop.ini
 *.swp
 *.swo
 *~
-
-# Local environment and secrets (keep shareable templates)
-.env
-.env.*
-!.env.example
-!.env.*.example
-
-# Frontend dependencies and generated output
-node_modules/
-dist/
-.vite/
-coverage/
-*.tsbuildinfo
-
-# Runtime and package-manager logs
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Local H2 database files and JVM crash reports
-*.mv.db
-*.trace.db
-*.hprof
-hs_err_pid*
-replay_pid*
-
-# Operating-system and editor temporary files
-.DS_Store
-Thumbs.db
-Desktop.ini
-*.swp
-*.swo
-*~
